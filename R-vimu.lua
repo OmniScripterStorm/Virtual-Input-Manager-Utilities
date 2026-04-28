@@ -23,43 +23,36 @@ function VIMR.clickButton(button)
     VIM:SendMouseButtonEvent(centerX, centerY, 0, false, game, 1) -- Up
 end
 
-function VIMR.isReady(button)
-    if not button or not button:IsA("GuiObject") then return false end
+local function isButtonActuallyReady(button)
+    if not button or not button.Visible then return false end
     
-    -- 1. Check if the button and all its ancestors are Visible
-    local current = button
-    while current:IsA("GuiObject") do
-        if not current.Visible then return false end
-        current = current.Parent
-    end
-    
-    -- 2. Check if the ScreenGui is enabled
-    local screenGui = button:FindFirstAncestorOfClass("ScreenGui")
-    if not screenGui or not screenGui.Enabled then return false end
-
-    -- 3. Check if it's within the screen boundaries (Viewport)
-    local viewport = workspace.CurrentCamera.ViewportSize
-    local absPos = button.AbsolutePosition
-    if absPos.X < 0 or absPos.Y < 0 or absPos.X > viewport.X or absPos.Y > viewport.Y then
-        return false
+    -- 1. Check if it's currently tweening (Position is changing)
+    local pos1 = button.AbsolutePosition
+    task.wait(0.05)
+    local pos2 = button.AbsolutePosition
+    if (pos1 - pos2).Magnitude > 0.1 then 
+        return false -- Still moving!
     end
 
-    -- 4. Check if the button is covered by another UI element
-    -- We get all objects at the button's center point
-    local centerX = absPos.X + (button.AbsoluteSize.X / 2)
-    local centerY = absPos.Y + (button.AbsoluteSize.Y / 2)
-    local guisAtPoint = player.PlayerGui:GetGuiObjectsAtPosition(centerX, centerY)
-    
-    -- If the first object in the list isn't our button (or a child of it), 
-    -- something else is blocking it.
-    if #guisAtPoint > 0 then
-        local topObject = guisAtPoint[1]
-        if not topObject:IsDescendantOf(button) and topObject ~= button then
-            -- Note: Some invisible frames might block clicks. 
-            -- Check if the blocking object is actually visible/active.
-            if topObject.Visible and topObject.BackgroundTransparency < 1 then
-                return false 
-            end
+    -- 2. Check Clipping: Is the button inside its Parent's view?
+    local parentFrame = button.Parent -- This is the ScrollingFrame
+    local bPos, bSize = button.AbsolutePosition, button.AbsoluteSize
+    local pPos, pSize = parentFrame.AbsolutePosition, parentFrame.AbsoluteSize
+
+    -- Is the center of the button outside the parent frame's box?
+    local centerX = bPos.X + (bSize.X / 2)
+    local centerY = bPos.Y + (bSize.Y / 2)
+
+    if centerX < pPos.X or centerX > (pPos.X + pSize.X) or
+       centerY < pPos.Y or centerY > (pPos.Y + pSize.Y) then
+        return false -- It's hidden/clipped outside the frame
+    end
+
+    -- 3. Check Transparency (In case it tweens from Transparent to Opaque)
+    -- Some games use CanvasGroups, check GroupTransparency if applicable
+    if button:IsA("TextButton") or button:IsA("ImageButton") then
+        if button.BackgroundTransparency == 1 and (button.TextTransparency or 1) == 1 then
+            return false
         end
     end
 
