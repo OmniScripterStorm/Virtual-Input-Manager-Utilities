@@ -75,7 +75,7 @@ Scans the root for all `GuiButtons` and returns an array containing only the but
 
 ## Practical Example
 ```lua
-local VIMR = loadstring(game:HttpGet("YOUR_LINK_HERE"))()
+local VIMR = loadstring(game:HttpGet("https://raw.githubusercontent.com/OmniScripterStorm/Virtual-Input-Manager-Utilities/refs/heads/main/R-vimu.lua"))()
 
 -- Clicking an ability that appears after a menu animation
 local path = "PlayerGUI.SkillMenu.ScrollingFrame.Flame Bolt"
